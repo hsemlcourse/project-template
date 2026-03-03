@@ -55,7 +55,32 @@ jobs:
         run: pytest tests/ -v --tb=short
 
   # ---------------------------------------------------------------------------
-  # 3. Required files check — проверка обязательных артефактов
+  # 3. Papermill — проверка выполнения ноутбуков
+  # ---------------------------------------------------------------------------
+  papermill:
+    name: Papermill Notebooks
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run notebooks with papermill
+        run: |
+          papermill notebooks/01_eda.ipynb /tmp/01_eda_out.ipynb -k python3
+          papermill notebooks/02_baseline.ipynb /tmp/02_baseline_out.ipynb -k python3
+          papermill notebooks/03_experiments.ipynb /tmp/03_experiments_out.ipynb -k python3
+
+  # ---------------------------------------------------------------------------
+  # 4. Required files check — проверка обязательных артефактов
   # ---------------------------------------------------------------------------
   check-artifacts:
     name: Check Required Files
