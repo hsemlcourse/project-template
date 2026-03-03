@@ -1,0 +1,89 @@
+name: CI — Autotests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Linting — проверка стиля кода
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Flake8 Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8 on src/
+        run: |
+          flake8 src/ \
+            --max-line-length=100 \
+            --ignore=E203,W503 \
+            --exclude=__pycache__,.venv
+
+  # ---------------------------------------------------------------------------
+  # 2. Unit tests — pytest
+  # ---------------------------------------------------------------------------
+  tests:
+    name: Pytest Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+  # ---------------------------------------------------------------------------
+  # 3. Required files check — проверка обязательных артефактов
+  # ---------------------------------------------------------------------------
+  check-artifacts:
+    name: Check Required Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check ablation_table.csv exists
+        run: |
+          if [ ! -f "reports/ablation_table.csv" ]; then
+            echo "❌ ERROR: reports/ablation_table.csv not found!"
+            echo "Этот файл обязателен. Убедитесь, что вы запустили 03_experiments.ipynb."
+            exit 1
+          fi
+          echo "✅ reports/ablation_table.csv found"
+
+      - name: Check report exists
+        run: |
+          if [ ! -f "report/report.md" ]; then
+            echo "❌ ERROR: report/report.md not found!"
+            exit 1
+          fi
+          echo "✅ report/report.md found"
+
+      - name: Check deployment app exists
+        run: |
+          if [ ! -f "deployment/app.py" ]; then
+            echo "❌ ERROR: deployment/app.py not found!"
+            exit 1
+          fi
+          echo "✅ deployment/app.py found"
